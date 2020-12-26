@@ -3,8 +3,13 @@ server:
 
 eureka:
   client:
+    fetch-registry: true
+    register-with-eureka: true
     serviceUrl:
       defaultZone: http://localhost:8761/eureka
+
+instance:
+  hostname: localhost
 
 spring:
   application:
@@ -12,12 +17,35 @@ spring:
   cloud:
     gateway:
       routes:
-        - id: orderModule
-          uri: lb://ORDER-SERVICE
+        - id: USER-SERVICE
+          uri: lb://USER-SERVICE
           predicates:
-            - Path=/order/**
-        - id: paymentModule
-          uri: lb://PAYMENT-SERVICE
+            - Path=/user/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: USER-SERVICE
+                fallbackuri: forward:/userFallBack
+        - id: DEPARTMENT-SERVICE
+          uri: lb://DEPARTMENT-SERVICE
           predicates:
-            - Path=/payment/**
+            - Path=/dept/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: DEPARTMENT-SERVICE
+                fallbackuri: forward:/deptFallBack
 
+hystrix:
+  command:
+    fallbackcmd:
+      execution:
+        isolation:
+          thread:
+            timeoutInMilliseconds: 4000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: hystrix.stream
